@@ -1,0 +1,97 @@
+#include <GL/glut.h>
+#define Height 512
+#define Width 512
+
+void displayRectangleWithLinesAndPoints(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Define the size of the rectangle
+    GLfloat height = 0.5;
+    GLfloat width = 1.0;
+
+    // Calculate the coordinates to center the rectangle
+    GLfloat xLeft = -width / 2.0;
+    GLfloat xRight = width / 2.0;
+    GLfloat yBottom = -height / 2.0;
+    GLfloat yTop = height / 2.0;
+
+    // Draw the rectangle
+    glBegin(GL_LINES);
+    glColor3f(0.0, 0.0, 1.0); // Set color to blue
+
+    // Bottom side
+    glVertex3f(xLeft, yBottom, 0.0);
+    glVertex3f(xRight, yBottom, 0.0);
+
+    // Right side
+    glVertex3f(xRight, yBottom, 0.0);
+    glVertex3f(xRight, yTop, 0.0);
+
+    // Top side
+    glVertex3f(xRight, yTop, 0.0);
+    glVertex3f(xLeft, yTop, 0.0);
+
+    // Left side
+    glVertex3f(xLeft, yTop, 0.0);
+    glVertex3f(xLeft, yBottom, 0.0);
+    glEnd();
+
+    // Draw the mid vertical line
+    glBegin(GL_LINES);
+    glColor3f(1.0, 0.0, 0.0); // Set color to red
+    glVertex3f(0.0, yBottom, 0.0); // Start point of the line
+    glVertex3f(0.0, yTop, 0.0);    // End point of the line
+    glEnd();
+
+    // Draw the mid horizontal line
+    glBegin(GL_LINES);
+    glColor3f(1.0, 0.0, 0.0); // Set color to red
+    glVertex3f(xLeft, 0.0, 0.0); // Start point of the line
+    glVertex3f(xRight, 0.0, 0.0); // End point of the line
+    glEnd();
+
+    // Calculate midpoints
+    GLfloat xMidVertical = 0.0;
+    GLfloat yMidHorizontal = 0.0;
+
+    // Draw points at the midpoints and four points at each side
+    glBegin(GL_POINTS);
+    glColor3f(0.0, 1.0, 0.0); // Set color to green
+
+    // Midpoint of the vertical line
+    glVertex3f(xMidVertical, (yBottom + yTop) / 2.0, 0.0);
+
+    // Midpoint of the horizontal line
+    glVertex3f((xLeft + xRight) / 2.0, yMidHorizontal, 0.0);
+
+    // Center of the rectangle
+    glVertex3f((xLeft + xRight) / 2.0, (yBottom + yTop) / 2.0, 0.0);
+
+    // Midpoint of the diagonal line from bottom-left to top-right
+    glVertex3f((xLeft + xRight) / 2.0, (yBottom + yTop) / 2.0, 0.0);
+
+    // Four points at each side
+    glVertex3f(xLeft/2, 0.1, 0.0);
+    glVertex3f(xLeft + (xRight) / 2.0, yBottom/2, 0.0);
+    glVertex3f(xRight/2, 0.1, 0.0);
+    glVertex3f(( xRight) / 2.0, yBottom+yTop/2, 0.0);
+
+    glEnd();
+
+    glFlush();
+}
+
+int main(int argc, char **argv)
+{
+    glutInit(&argc, argv);
+    glutInitWindowSize(Width, Height);
+    glutInitWindowPosition(10, 10);
+    glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE); // Removed GLUT_DEPTH, using GLUT_SINGLE for simplicity
+
+    glutCreateWindow("Rectangle Example with Midpoints and Points on Sides");
+    glutDisplayFunc(displayRectangleWithLinesAndPoints);
+    glutMainLoop();
+
+    return 0;
+}
