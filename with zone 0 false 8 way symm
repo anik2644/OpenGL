@@ -1,0 +1,335 @@
+/*
+ *   Lab-05: Implementation of Cyrus-Beak LCA in OpenGL
+ *   Jahir Sadik Monon
+ *   Roll: 32
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <GL/glut.h>
+
+int WIDTH = 640, HEIGHT = 480; // Width and height of the screen
+int MAX_HEIGHT = HEIGHT / 2 - 1;
+int MIN_HEIGHT = -HEIGHT / 2;
+int MAX_WIDTH = WIDTH / 2 - 1;
+int MIN_WIDTH = -WIDTH / 2;
+int x_max = 100;  // Clipping window max right
+int x_min = -100; // Clipping window min left
+int y_max = 100;  // Clipping window max up
+int y_min = -100; // Clipping window min down
+
+#define LINE_COUNT 360
+int radius = 250;
+int angleStep = 3;
+int lineCoords[LINE_COUNT][4];
+
+// Utility functions
+float max(float a, float b)
+{
+  return a >= b ? a : b;
+}
+
+float min(float a, float b)
+{
+  return a < b ? a : b;
+}
+
+// Struct to store the point (x,y)
+class Point
+{
+public:
+  int x, y;
+  Point(int x1, int y1)
+  {
+    x = x1;
+    y = y1;
+  }
+};
+
+// Function for creating a new point in between the line of two points P0 P1
+//      the value of t is put into the parametric equation
+Point Create_Point(Point p0, Point p1, float t)
+{
+  return Point((int)(p0.x + t * (p1.x - p0.x)), (int)(p0.y + t * (p1.y - p0.y)));
+}
+
+// Line Drawing algorithms zone finding for given line endpoints
+int findZone(int x0, int y0, int x1, int y1)
+{
+  int dx = x1 - x0, dy = y1 - y0;
+  if (dx >= 0 and dy >= 0)
+  {
+    if (dx >= dy)
+    {
+      return 0;
+    }
+    else
+    {
+      return 1;
+    }
+  }
+  else if (dx < 0 and dy >= 0)
+  {
+    if (-dx >= dy)
+    {
+      return 3;
+    }
+    else
+    {
+      return 2;
+    }
+  }
+  else if (dx < 0 and dy < 0)
+  {
+    if (-dx >= -dy)
+    {
+      return 4;
+    }
+    else
+    {
+      return 5;
+    }
+  }
+  else
+  {
+    if (dx >= -dy)
+    {
+      return 7;
+    }
+    else
+    {
+      return 6;
+    }
+  }
+}
+
+// Drawing pixel with specific color
+// The zone argument is used to do zone-0 to any zone conversion
+void drawPixel(int x, int y, int zone, int color)
+{
+
+  switch (zone)
+  {
+  case 0:
+    glColor3ub(255, 255, 255); // White
+    break;
+  case 1:
+    glColor3ub(255, 0, 0); // Red
+    break;
+  case 2:
+    glColor3ub(0, 255, 0); // Green
+    break;
+  case 3:
+    glColor3ub(0, 0, 255); // Blue
+    break;
+  case 4:
+    glColor3ub(255, 255, 0); // Yellow
+    break;
+  case 5:
+    glColor3ub(0, 255, 255); // Cyan
+    break;
+  case 6:
+    glColor3ub(255, 0, 255); // Magenta
+    break;
+  case 7:
+    glColor3ub(255 / 2, 255 / 2, 255 / 2); // Gray
+    break;
+  }
+
+  switch (zone)
+  {
+  case 0:
+    glVertex2i(x, y);
+    break;
+  case 1:
+    glVertex2i(y, x);
+    break;
+  case 2:
+    glVertex2i(-y, x);
+    break;
+  case 3:
+    glVertex2i(-x, y);
+    break;
+  case 4:
+    glVertex2i(-x, -y);
+    break;
+  case 5:
+    glVertex2i(-y, -x);
+    break;
+  case 6:
+    glVertex2i(y, -x);
+    break;
+  case 7:
+    glVertex2i(x, -y);
+    break;
+  }
+}
+
+// DrawLine function for drawing a line from zone-0
+void drawLine3(int x0, int y0, int x1, int y1, int zone, int color)
+{
+  int dx = x1 - x0, dy = y1 - y0;
+  int x = x0, y = y0, d = 2 * dy - dx;
+  int de = 2 * dy, dne = 2 * (dy - dx);
+  while (x <= x1)
+  {
+    drawPixel(x, y, zone, color);
+    if (d < 0)
+    {
+      x++;
+      d += de;
+    }
+    else
+    {
+      x++;
+      y++;
+      d += dne;
+    }
+  }
+}
+
+
+/*
+    Zone Conversion Table
+    Zone        Any-To-Zero
+    0           (x,y) -> (x,y)
+    1           (x,y) -> (y,x)
+    2           (x,y) -> (y,-x)
+    3           (x,y) -> (-x,y)
+    4           (x,y) -> (-x,-y)
+    5           (x,y) -> (-y,-x)
+    6           (x,y) -> (-y,x)
+    7           (x,y) -> (x,-y)
+*/
+// Finds zone, converts all to zone-0
+//      processes in zone-0 but draws in original zone
+void draw8way(int x0, int y0, int x1, int y1, int zone)
+{
+
+  int color = 1;
+  // int zone = findZone(x0, y0, x1, y1);
+  switch (zone)
+  {
+  case 0:
+    drawLine3(x0, y0, x1, y1, zone, color);
+    break;
+  case 1:
+    drawLine3(y0, x0, y1, x1, zone, color);
+    break;
+  case 2:
+    drawLine3(y0, -x0, y1, -x1, zone, color);
+    break;
+  case 3:
+    drawLine3(-x0, y0, -x1, y1, zone, color);
+    break;
+  case 4:
+    drawLine3(-x0, -y0, -x1, -y1, zone, color);
+    break;
+  case 5:
+
+    drawLine3(-y0, -x0, -y1, -x1, zone, color);
+    break;
+  case 6:
+
+    drawLine3(-y0, x0, -y1, x1, zone, color);
+    break;
+  case 7:
+    drawLine3(x0, -y0, x1, -y1, zone, color);
+    break;
+  }
+}
+
+void reshape(int w, int h)
+{
+  glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluOrtho2D(-WIDTH / 2, WIDTH / 2 - 1, -HEIGHT / 2, HEIGHT / 2 - 1);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+}
+
+// Draws a grid around the clipping window
+void draw_grid(void)
+{
+  glBegin(GL_LINES);
+  glVertex2i(x_min, MIN_HEIGHT);
+  glVertex2i(x_min, MAX_HEIGHT);
+  glVertex2i(x_max, MIN_HEIGHT);
+  glVertex2i(x_max, MAX_HEIGHT);
+  glVertex2i(MIN_WIDTH, y_max);
+  glVertex2i(MAX_WIDTH, y_max);
+  glVertex2i(MIN_WIDTH, y_min);
+  glVertex2i(MAX_WIDTH, y_min);
+  glEnd();
+}
+
+// Implementation of the Cyrus Beak LCA for clipping one line
+
+int myx0, myy0, myx1, myy1;
+
+void makeCircle()
+{
+  for (int i = 0; i < LINE_COUNT; i++)
+  {
+    float angle = i * angleStep * M_PI / 180.0; // Increment angle by angleStep for each line
+    int zone = findZone(lineCoords[i][0], lineCoords[i][1], lineCoords[i][2], lineCoords[i][3]);
+    lineCoords[i][2] = radius * cos(angle); // Update x2 coordinate based on new angle
+    lineCoords[i][3] = radius * sin(angle); // Update y2 coordinate based on new angle
+
+    // cout<< lineCoords[i][2]<<lineCoords[i][3] ;
+
+    //  printf("%d %d\n", lineCoords[i][2], lineCoords[i][3]);
+
+    draw8way(lineCoords[i][0], lineCoords[i][1], lineCoords[i][2], lineCoords[i][3], zone);
+  }
+}
+
+void display()
+{
+  glClear(GL_COLOR_BUFFER_BIT);
+  // glColor3f(1.0, 1.0, 1.0);
+  // draw_grid();
+  glBegin(GL_POINTS);
+
+  makeCircle();
+
+ // glutSwapBuffers();
+  glEnd();
+  glFlush();
+}
+
+int main(int argc, char **argv)
+{
+
+  radius = 200;
+  angleStep = 10;
+
+  printf("(Radius & angleStep):\n");
+  scanf("%d %d", &radius, &angleStep);
+
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutInitWindowSize(WIDTH, HEIGHT);
+  glutInitWindowPosition(0, 0);
+  glutCreateWindow("Anik's Work");
+
+  
+
+  for (int i = 0; i < LINE_COUNT; i++)
+  {
+    float angle = i * angleStep * M_PI / 180.0;
+    lineCoords[i][0] = 0;
+    lineCoords[i][1] = 0;
+    lineCoords[i][2] = radius * cos(angle);
+    lineCoords[i][3] = radius * sin(angle);
+  }
+
+   
+  glutReshapeFunc(reshape);
+  glutDisplayFunc(display);
+  glutMainLoop();
+  return 0;
+}
+// g++ Draw8way.cpp -o Draw8way -lglut -lGLU -lGL
